@@ -6,6 +6,7 @@ obj-$(CONFIG_PHY_SAMSUNG_UFS)		+= phy-exynos-ufs.o
 phy-exynos-ufs-y			+= phy-gs101-ufs.o
 phy-exynos-ufs-y			+= phy-samsung-ufs.o
 phy-exynos-ufs-y			+= phy-exynos7-ufs.o
+phy-exynos-ufs-y			+= phy-exynos9820-ufs.o
 phy-exynos-ufs-y			+= phy-exynosautov9-ufs.o
 phy-exynos-ufs-y			+= phy-exynosautov920-ufs.o
 phy-exynos-ufs-y			+= phy-fsd-ufs.o

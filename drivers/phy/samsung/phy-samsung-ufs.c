@@ -361,6 +361,9 @@ static const struct of_device_id samsung_ufs_phy_match[] = {
 		.compatible = "samsung,exynos7-ufs-phy",
 		.data = &exynos7_ufs_phy,
 	}, {
+		.compatible = "samsung,exynos9820-ufs-phy",
+		.data = &exynos9820_ufs_phy,
+	},{
 		.compatible = "samsung,exynosautov9-ufs-phy",
 		.data = &exynosautov9_ufs_phy,
 	}, {
