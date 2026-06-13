@@ -521,10 +521,13 @@ static int sec_pmic_acpm_probe(struct platform_device *pdev)
 			return PTR_ERR(regmap);
 	}
 
-	regmap = sec_pmic_acpm_regmap_init(dev, shared_ctx, SEC_PMIC_ACPM_ACCESSTYPE_METER,
-					   pdata->regmap_cfg_meter, true);
-	if (IS_ERR(regmap))
-		return PTR_ERR(regmap);
+	if (pdata->regmap_cfg_meter) {
+		regmap = sec_pmic_acpm_regmap_init(
+			dev, shared_ctx, SEC_PMIC_ACPM_ACCESSTYPE_METER,
+			pdata->regmap_cfg_meter, true);
+		if (IS_ERR(regmap))
+			return PTR_ERR(regmap);
+	}
 
 	ret = sec_pmic_probe(dev, pdata->device_type, irq, regmap_pmic, NULL);
 	if (ret)
