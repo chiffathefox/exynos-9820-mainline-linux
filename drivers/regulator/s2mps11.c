@@ -23,6 +23,7 @@
 #include <linux/mfd/samsung/s2mps13.h>
 #include <linux/mfd/samsung/s2mps14.h>
 #include <linux/mfd/samsung/s2mps15.h>
+#include <linux/mfd/samsung/s2mps19.h>
 #include <linux/mfd/samsung/s2mpu02.h>
 #include <linux/mfd/samsung/s2mpu05.h>
 
@@ -1779,6 +1780,112 @@ static const struct regulator_desc s2mps15_regulators[] = {
 	regulator_desc_s2mps15_buck(10, s2mps15_buck_voltage_ranges2),
 };
 
+static const struct regulator_ops s2mps19_reg_ops = {
+	.list_voltage		= regulator_list_voltage_linear,
+	.map_voltage		= regulator_map_voltage_linear,
+	.is_enabled		= regulator_is_enabled_regmap,
+	.enable			= regulator_enable_regmap,
+	.disable		= regulator_disable_regmap,
+	.get_voltage_sel	= regulator_get_voltage_sel_regmap,
+	.set_voltage_sel	= regulator_set_voltage_sel_regmap,
+	.set_voltage_time_sel   = regulator_set_voltage_time_sel,
+};
+
+#define regulator_desc_s2mps19_ldo(num, min_uv, step) {	\
+	.name		= "ldo"#num"m",			\
+	.id		= S2MPS19_LDO##num,		\
+	.of_match	= of_match_ptr("ldo"#num"m"),	\
+	.regulators_node = of_match_ptr("regulators"),	\
+	.ops		= &s2mps19_reg_ops,		\
+	.type		= REGULATOR_VOLTAGE,		\
+	.owner		= THIS_MODULE,			\
+	.min_uV		= min_uv,			\
+	.uV_step	= step,				\
+	.n_voltages	= S2MPS19_LDO_N_VOLTAGES,	\
+	.vsel_reg	= S2MPS19_PMIC_L##num##CTRL,	\
+	.vsel_mask	= S2MPS19_LDO_VSEL_MASK,	\
+	.enable_reg	= S2MPS19_PMIC_L##num##CTRL,	\
+	.enable_mask	= S2MPS19_ENABLE_MASK,		\
+	.enable_time	= S2MPS19_ENABLE_TIME_LDO,	\
+}
+
+#define regulator_desc_s2mps19_buck(num, min_uv, step) {	\
+	.name		= "buck"#num"m",			\
+	.id		= S2MPS19_BUCK##num,			\
+	.of_match	= of_match_ptr("buck"#num"m"),		\
+	.regulators_node = of_match_ptr("regulators"),		\
+	.ops		= &s2mps19_reg_ops,			\
+	.type		= REGULATOR_VOLTAGE,			\
+	.owner		= THIS_MODULE,				\
+	.min_uV		= min_uv,				\
+	.uV_step	= step,					\
+	.n_voltages	= S2MPS19_BUCK_N_VOLTAGES,		\
+	.vsel_reg	= S2MPS19_PMIC_B##num##M_OUT1,		\
+	.vsel_mask	= S2MPS19_BUCK_VSEL_MASK,		\
+	.enable_reg	= S2MPS19_PMIC_B##num##M_CTRL,		\
+	.enable_mask	= S2MPS19_ENABLE_MASK,			\
+	.enable_time	= S2MPS19_ENABLE_TIME_BUCK,		\
+}
+
+static const struct regulator_desc s2mps19_regulators[] = {
+	regulator_desc_s2mps19_ldo(1, MIN_700_MV, STEP_12_5_MV),
+	regulator_desc_s2mps19_ldo(2, MIN_1800_MV, STEP_25_MV),
+	regulator_desc_s2mps19_ldo(3, MIN_700_MV, STEP_12_5_MV),
+	regulator_desc_s2mps19_ldo(4, MIN_700_MV, STEP_25_MV),
+	regulator_desc_s2mps19_ldo(5, MIN_300_MV, STEP_25_MV),
+	regulator_desc_s2mps19_ldo(6, MIN_300_MV, STEP_25_MV),
+	regulator_desc_s2mps19_ldo(7, MIN_300_MV, STEP_25_MV),
+	regulator_desc_s2mps19_ldo(8, MIN_300_MV, STEP_25_MV),
+	regulator_desc_s2mps19_ldo(9, MIN_700_MV, STEP_12_5_MV),
+	regulator_desc_s2mps19_ldo(10, MIN_700_MV, STEP_12_5_MV),
+	regulator_desc_s2mps19_ldo(11, MIN_700_MV, STEP_25_MV),
+	regulator_desc_s2mps19_ldo(12, MIN_1800_MV, STEP_25_MV),
+	regulator_desc_s2mps19_ldo(15, MIN_1800_MV, STEP_25_MV),
+	regulator_desc_s2mps19_ldo(16, MIN_1800_MV, STEP_25_MV),
+	regulator_desc_s2mps19_ldo(17, MIN_700_MV, STEP_25_MV),
+	regulator_desc_s2mps19_ldo(18, MIN_700_MV, STEP_12_5_MV),
+	regulator_desc_s2mps19_ldo(19, MIN_700_MV, STEP_25_MV),
+	regulator_desc_s2mps19_ldo(20, MIN_1800_MV, STEP_25_MV),
+	regulator_desc_s2mps19_ldo(21, MIN_700_MV, STEP_25_MV),
+	regulator_desc_s2mps19_ldo(22, MIN_700_MV, STEP_25_MV),
+	regulator_desc_s2mps19_ldo(23, MIN_700_MV, STEP_12_5_MV),
+	regulator_desc_s2mps19_ldo(24, MIN_1800_MV, STEP_25_MV),
+	regulator_desc_s2mps19_ldo(25, MIN_700_MV, STEP_25_MV),
+	regulator_desc_s2mps19_ldo(26, MIN_1800_MV, STEP_25_MV),
+	regulator_desc_s2mps19_ldo(27, MIN_1800_MV, STEP_25_MV),
+	regulator_desc_s2mps19_ldo(28, MIN_700_MV, STEP_25_MV),
+	regulator_desc_s2mps19_ldo(29, MIN_1800_MV, STEP_25_MV),
+	regulator_desc_s2mps19_buck(1, MIN_300_MV, STEP_6_25_MV),
+	regulator_desc_s2mps19_buck(2, MIN_300_MV, STEP_6_25_MV),
+	regulator_desc_s2mps19_buck(3, MIN_300_MV, STEP_6_25_MV),
+	regulator_desc_s2mps19_buck(4, MIN_300_MV, STEP_6_25_MV),
+	regulator_desc_s2mps19_buck(5, MIN_300_MV, STEP_6_25_MV),
+	regulator_desc_s2mps19_buck(6, MIN_300_MV, STEP_6_25_MV),
+	regulator_desc_s2mps19_buck(7, MIN_300_MV, STEP_6_25_MV),
+	regulator_desc_s2mps19_buck(8, MIN_300_MV, STEP_6_25_MV),
+	regulator_desc_s2mps19_buck(9, MIN_300_MV, STEP_6_25_MV),
+	regulator_desc_s2mps19_buck(10, MIN_300_MV, STEP_6_25_MV),
+	regulator_desc_s2mps19_buck(11, MIN_300_MV, STEP_6_25_MV),
+	regulator_desc_s2mps19_buck(12, MIN_600_MV, STEP_12_5_MV),
+	{
+		.name = "bbm",
+		.id = S2MPS19_BB,
+		.of_match = of_match_ptr("bbm"),
+		.regulators_node = of_match_ptr("regulators"),
+		.ops = &s2mps19_reg_ops,
+		.type = REGULATOR_VOLTAGE,
+		.owner = THIS_MODULE,
+		.min_uV = 2600000,
+		.uV_step = STEP_12_5_MV,
+		.n_voltages = S2MPS19_BB_N_VOLTAGES,
+		.vsel_reg = S2MPS19_PMIC_BBM_OUT,
+		.vsel_mask = S2MPS19_BB_VSEL_MASK,
+		.enable_reg = S2MPS19_PMIC_BBM_CTRL,
+		.enable_mask = S2MPS19_ENABLE_MASK,
+		.enable_time = S2MPS19_ENABLE_TIME_BB,
+	},
+};
+
 static int s2mps14_pmic_enable_ext_control(struct s2mps11_info *s2mps11,
 					   struct regulator_dev *rdev)
 {
@@ -2207,6 +2314,11 @@ static int s2mps11_pmic_probe(struct platform_device *pdev)
 		regulators = s2mps15_regulators;
 		BUILD_BUG_ON(ARRAY_SIZE(s2mps15_regulators) > S2MPS_REGULATOR_MAX);
 		break;
+	case S2MPS19:
+		rdev_num = ARRAY_SIZE(s2mps19_regulators);
+		regulators = s2mps19_regulators;
+		BUILD_BUG_ON(ARRAY_SIZE(s2mps19_regulators) > S2MPS_REGULATOR_MAX);
+		break;
 	case S2MPU02:
 		rdev_num = ARRAY_SIZE(s2mpu02_regulators);
 		regulators = s2mpu02_regulators;
@@ -2272,6 +2384,7 @@ static const struct platform_device_id s2mps11_pmic_id[] = {
 	{ "s2mps13-regulator", S2MPS13X},
 	{ "s2mps14-regulator", S2MPS14X},
 	{ "s2mps15-regulator", S2MPS15X},
+	{ "s2mps19-regulator", S2MPS19},
 	{ "s2mpu02-regulator", S2MPU02},
 	{ "s2mpu05-regulator", S2MPU05},
 	{ },

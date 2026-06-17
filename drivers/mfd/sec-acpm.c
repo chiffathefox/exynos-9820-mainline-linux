@@ -14,6 +14,7 @@
 #include <linux/mfd/samsung/rtc.h>
 #include <linux/mfd/samsung/s2mpg10.h>
 #include <linux/mfd/samsung/s2mpg11.h>
+#include <linux/mfd/samsung/s2mps19.h>
 #include <linux/mod_devicetable.h>
 #include <linux/module.h>
 #include <linux/of.h>
@@ -366,6 +367,111 @@ static const struct regmap_config s2mpg11_regmap_config_meter = {
 	.cache_type = REGCACHE_FLAT,
 };
 
+static const struct regmap_range s2mps19_common_registers[] = {
+	regmap_reg_range(0x00, 0x02), /* CHIP_ID_S, INT, INT_MASK */
+};
+
+static const struct regmap_range s2mps19_common_ro_registers[] = {
+	regmap_reg_range(0x00, 0x01), /* CHIP_ID_S, INT */
+};
+
+static const struct regmap_range s2mps19_common_nonvolatile_registers[] = {
+	regmap_reg_range(0x00, 0x00), /* CHIP_ID_S */
+	regmap_reg_range(0x02, 0x02), /* INT_MASK */
+};
+
+static const struct regmap_range s2mps19_common_precious_registers[] = {
+	regmap_reg_range(0x01, 0x01), /* INT */
+};
+
+static const struct regmap_access_table s2mps19_common_wr_table = {
+	.yes_ranges = s2mps19_common_registers,
+	.n_yes_ranges = ARRAY_SIZE(s2mps19_common_registers),
+	.no_ranges = s2mps19_common_ro_registers,
+	.n_no_ranges = ARRAY_SIZE(s2mps19_common_ro_registers),
+};
+
+static const struct regmap_access_table s2mps19_common_rd_table = {
+	.yes_ranges = s2mps19_common_registers,
+	.n_yes_ranges = ARRAY_SIZE(s2mps19_common_registers),
+};
+
+static const struct regmap_access_table s2mps19_common_volatile_table = {
+	.no_ranges = s2mps19_common_nonvolatile_registers,
+	.n_no_ranges = ARRAY_SIZE(s2mps19_common_nonvolatile_registers),
+};
+
+static const struct regmap_access_table s2mps19_common_precious_table = {
+	.yes_ranges = s2mps19_common_precious_registers,
+	.n_yes_ranges = ARRAY_SIZE(s2mps19_common_precious_registers),
+};
+
+static const struct regmap_config s2mps19_regmap_config_common = {
+	.name = "common",
+	.reg_bits = ACPM_ADDR_BITS,
+	.val_bits = 8,
+	.max_register = S2MPS19_COMMON_INT_MASK,
+	.wr_table = &s2mps19_common_wr_table,
+	.rd_table = &s2mps19_common_rd_table,
+	.volatile_table = &s2mps19_common_volatile_table,
+	.precious_table = &s2mps19_common_precious_table,
+	.num_reg_defaults_raw = S2MPS19_COMMON_INT_MASK + 1,
+	.cache_type = REGCACHE_FLAT,
+};
+
+static const struct regmap_range s2mps19_pmic_registers[] = {
+	regmap_reg_range(0x00, 0xc2), /* All PMIC registers */
+};
+
+static const struct regmap_range s2mps19_pmic_ro_registers[] = {
+	regmap_reg_range(0x00, 0x06), /* INTx */
+	regmap_reg_range(0x0e, 0x11), /* STATUSx PWRONSRC OFFSRC */
+	regmap_reg_range(0xc2, 0xc2), /* ADC_DATA */
+};
+
+static const struct regmap_range s2mps19_pmic_nonvolatile_registers[] = {
+	regmap_reg_range(0x07, 0x0d), /* INTxM */
+};
+
+static const struct regmap_range s2mps19_pmic_precious_registers[] = {
+	regmap_reg_range(0x00, 0x06), /* INTx */
+};
+
+static const struct regmap_access_table s2mps19_pmic_wr_table = {
+	.yes_ranges = s2mps19_pmic_registers,
+	.n_yes_ranges = ARRAY_SIZE(s2mps19_pmic_registers),
+	.no_ranges = s2mps19_pmic_ro_registers,
+	.n_no_ranges = ARRAY_SIZE(s2mps19_pmic_ro_registers),
+};
+
+static const struct regmap_access_table s2mps19_pmic_rd_table = {
+	.yes_ranges = s2mps19_pmic_registers,
+	.n_yes_ranges = ARRAY_SIZE(s2mps19_pmic_registers),
+};
+
+static const struct regmap_access_table s2mps19_pmic_volatile_table = {
+	.no_ranges = s2mps19_pmic_nonvolatile_registers,
+	.n_no_ranges = ARRAY_SIZE(s2mps19_pmic_nonvolatile_registers),
+};
+
+static const struct regmap_access_table s2mps19_pmic_precious_table = {
+	.yes_ranges = s2mps19_pmic_precious_registers,
+	.n_yes_ranges = ARRAY_SIZE(s2mps19_pmic_precious_registers),
+};
+
+static const struct regmap_config s2mps19_regmap_config_pmic = {
+	.name = "pmic",
+	.reg_bits = ACPM_ADDR_BITS,
+	.val_bits = 8,
+	.max_register = S2MPS19_PMIC_ADC_DATA,
+	.wr_table = &s2mps19_pmic_wr_table,
+	.rd_table = &s2mps19_pmic_rd_table,
+	.volatile_table = &s2mps19_pmic_volatile_table,
+	.precious_table = &s2mps19_pmic_precious_table,
+	.num_reg_defaults_raw = S2MPS19_PMIC_ADC_DATA + 1,
+	.cache_type = REGCACHE_FLAT,
+};
+
 struct sec_pmic_acpm_shared_bus_context {
 	struct acpm_handle *acpm;
 	unsigned int acpm_chan_id;
@@ -563,9 +669,18 @@ static const struct sec_pmic_acpm_platform_data s2mpg11_data = {
 	.regmap_cfg_meter = &s2mpg11_regmap_config_meter,
 };
 
+static const struct sec_pmic_acpm_platform_data s2mps19_data = {
+	.device_type = S2MPS19,
+	.acpm_chan_id = 2,
+	.speedy_channel = 0,
+	.regmap_cfg_common = &s2mps19_regmap_config_common,
+	.regmap_cfg_pmic = &s2mps19_regmap_config_pmic,
+};
+
 static const struct of_device_id sec_pmic_acpm_of_match[] = {
 	{ .compatible = "samsung,s2mpg10-pmic", .data = &s2mpg10_data, },
 	{ .compatible = "samsung,s2mpg11-pmic", .data = &s2mpg11_data, },
+	{ .compatible = "samsung,s2mps19-pmic", .data = &s2mps19_data, },
 	{ },
 };
 MODULE_DEVICE_TABLE(of, sec_pmic_acpm_of_match);

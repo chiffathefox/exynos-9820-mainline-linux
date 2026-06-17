@@ -20,9 +20,11 @@
 #define MIN_850_MV		850000
 #define MIN_800_MV		800000
 #define MIN_750_MV		750000
+#define MIN_700_MV		700000
 #define MIN_650_MV		650000
 #define MIN_600_MV		600000
 #define MIN_500_MV		500000
+#define MIN_300_MV		300000
 
 /* Ramp delay in uV/us */
 #define RAMP_DELAY_12_MVUS	12000
@@ -45,6 +47,7 @@ enum sec_device_type {
 	S2MPS13X,
 	S2MPS14X,
 	S2MPS15X,
+	S2MPS19,
 	S2MPU02,
 	S2MPU05,
 };

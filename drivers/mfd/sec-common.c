@@ -87,6 +87,10 @@ static const struct mfd_cell s2mps15_devs[] = {
 	MFD_CELL_OF("s2mps13-clk", NULL, NULL, 0, 0, "samsung,s2mps13-clk"),
 };
 
+static const struct mfd_cell s2mps19_devs[] = {
+	MFD_CELL_NAME("s2mps19-regulator"),
+};
+
 static const struct mfd_cell s2mpa01_devs[] = {
 	MFD_CELL_NAME("s2mpa01-pmic"),
 	MFD_CELL_RES("s2mps14-rtc", s2mps14_rtc_resources),
@@ -241,6 +245,10 @@ int sec_pmic_probe(struct device *dev, int device_type, unsigned int irq,
 	case S2MPS15X:
 		sec_devs = s2mps15_devs;
 		num_sec_devs = ARRAY_SIZE(s2mps15_devs);
+		break;
+	case S2MPS19:
+		sec_devs = s2mps19_devs;
+		num_sec_devs = ARRAY_SIZE(s2mps19_devs);
 		break;
 	case S2MPU02:
 		sec_devs = s2mpu02_devs;
