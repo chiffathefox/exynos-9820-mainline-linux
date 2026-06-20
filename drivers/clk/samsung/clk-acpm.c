@@ -63,6 +63,29 @@ static const struct acpm_clk_driver_data acpm_clk_gs101 = {
 	.mbox_chan_id = 0,
 };
 
+static const struct acpm_clk_variant exynos9820_acpm_clks[] = {
+	ACPM_CLK("mif"),
+	ACPM_CLK("int"),
+	ACPM_CLK("cpucl0"),
+	ACPM_CLK("cpucl1"),
+	ACPM_CLK("cpucl2"),
+	ACPM_CLK("npu"),
+	ACPM_CLK("disp"),
+	ACPM_CLK("score"),
+	ACPM_CLK("aud"),
+	ACPM_CLK("gpu"),
+	ACPM_CLK("intcam"),
+	ACPM_CLK("cam"),
+	ACPM_CLK("iva"),
+	ACPM_CLK("mfc"),
+};
+
+static const struct acpm_clk_driver_data acpm_clk_exynos9820 = {
+	.clks = exynos9820_acpm_clks,
+	.nr_clks = ARRAY_SIZE(exynos9820_acpm_clks),
+	.mbox_chan_id = 5,
+};
+
 static unsigned long acpm_clk_recalc_rate(struct clk_hw *hw,
 					  unsigned long parent_rate)
 {
@@ -174,6 +197,7 @@ static int acpm_clk_probe(struct platform_device *pdev)
 
 static const struct platform_device_id acpm_clk_id[] = {
 	{ "gs101-acpm-clk", (kernel_ulong_t)&acpm_clk_gs101 },
+	{ "exynos9820-acpm-clk", (kernel_ulong_t)&acpm_clk_exynos9820 },
 	{}
 };
 MODULE_DEVICE_TABLE(platform, acpm_clk_id);
