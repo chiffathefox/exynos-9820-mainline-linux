@@ -197,6 +197,15 @@ static const struct samsung_cmu_info peris_cmu_info __initconst = {
 	.clk_name		= "bus",
 };
 
+static void __init exynos9820_cmu_misc_init(struct device_node *np)
+{
+	exynos_arm64_register_cmu(NULL, np, &peris_cmu_info);
+}
+
+/* Register CMU_MISC early, as it's needed for MCT timer */
+CLK_OF_DECLARE(exynos9820_cmu_misc, "samsung,exynos9820-cmu-peris",
+	       exynos9820_cmu_misc_init);
+
 /*
  * Register offsets for CMU_PERIC0 (0x10400000)
  */
@@ -2454,6 +2463,15 @@ static const struct samsung_cmu_info top_cmu_info __initconst = {
 	.nr_clk_regs		= ARRAY_SIZE(top_clk_regs),
 };
 
+static void __init exynos9820_cmu_top_init(struct device_node *np)
+{
+	exynos_arm64_register_cmu(NULL, np, &top_cmu_info);
+}
+
+/* Register CMU_TOP early, as it's a dependency for other early domains */
+CLK_OF_DECLARE(exynos9820_cmu_top, "samsung,exynos9820-cmu-top",
+	       exynos9820_cmu_top_init);
+
 static int __init exynos9820_cmu_probe(struct platform_device *pdev)
 {
 	const struct samsung_cmu_info *info;
@@ -2467,9 +2485,6 @@ static int __init exynos9820_cmu_probe(struct platform_device *pdev)
 
 static const struct of_device_id exynos9820_cmu_of_match[] = {
 	{
-		.compatible = "samsung,exynos9820-cmu-peris",
-		.data = &peris_cmu_info,
-	}, {
 		.compatible = "samsung,exynos9820-cmu-fsys1",
 		.data = &fsys1_cmu_info,
 	}, {
@@ -2481,9 +2496,6 @@ static const struct of_device_id exynos9820_cmu_of_match[] = {
 	}, {
 		.compatible = "samsung,exynos9820-cmu-apm",
 		.data = &apm_cmu_info,
-	}, {
-		.compatible = "samsung,exynos9820-cmu-top",
-		.data = &top_cmu_info,
 	}, {
 	},
 };
