@@ -15,6 +15,7 @@
 #include <linux/mfd/syscon.h>
 #include <linux/of_platform.h>
 #include <linux/platform_device.h>
+#include <linux/debugfs.h>
 #include <linux/delay.h>
 #include <linux/reboot.h>
 #include <linux/regmap.h>
@@ -142,6 +143,9 @@ static const struct of_device_id exynos_pmu_of_device_ids[] = {
 	}, {
 		.compatible = "samsung,exynos850-pmu",
 		.data = &exynos850_pmu_data,
+	}, {
+		.compatible = "samsung,exynos9820-pmu",
+		.data = &exynos9820_pmu_data,
 	},
 	{ /*sentinel*/ },
 };
@@ -238,7 +242,6 @@ static int exynos_cpuhp_pmu_online(unsigned int cpu)
 
 	raw_spin_lock_irqsave(&pmu_context->cpupm_lock, flags);
 
-	pmu_context->pmu_data->cpu_pmu_online(pmu_context, cpu);
 	/*
 	 * Mark this CPU as having finished the hotplug.
 	 * This means this CPU can now enter C2 idle state.
@@ -249,10 +252,20 @@ static int exynos_cpuhp_pmu_online(unsigned int cpu)
 	return 0;
 }
 
+/* Called from CPU hot plug callback with IRQs disabled */
+static int exynos_cpuhp_pmu_power_up(unsigned int cpu)
+{
+	raw_spin_lock(&pmu_context->cpupm_lock);
+	pmu_context->pmu_data->cpu_pmu_online(pmu_context, cpu);
+	raw_spin_unlock(&pmu_context->cpupm_lock);
+
+	return 0;
+}
+
 /* Called from CPU PM notifier (CPUIdle code path) with IRQs disabled */
 static int exynos_cpu_pmu_offline(void)
 {
-	int cpu;
+	int cpu, ret;
 
 	raw_spin_lock(&pmu_context->cpupm_lock);
 	cpu = smp_processor_id();
@@ -265,13 +278,13 @@ static int exynos_cpu_pmu_offline(void)
 	/* Ignore CPU_PM_ENTER event in reboot or suspend sequence. */
 	if (pmu_context->sys_insuspend || pmu_context->sys_inreboot) {
 		raw_spin_unlock(&pmu_context->cpupm_lock);
-		return NOTIFY_OK;
+		return NOTIFY_BAD;
 	}
 
-	pmu_context->pmu_data->cpu_pmu_offline(pmu_context, cpu);
+	ret = pmu_context->pmu_data->cpu_pmu_offline(pmu_context, cpu);
 	raw_spin_unlock(&pmu_context->cpupm_lock);
 
-	return NOTIFY_OK;
+	return ret ? NOTIFY_BAD : NOTIFY_OK;
 }
 
 /* Called from CPU hot plug callback with IRQs enabled */
@@ -285,9 +298,18 @@ static int exynos_cpuhp_pmu_offline(unsigned int cpu)
 	 * ACPM the CPU entering hotplug should not enter C2 idle state.
 	 */
 	set_bit(cpu, pmu_context->in_cpuhp);
-	pmu_context->pmu_data->cpu_pmu_offline(pmu_context, cpu);
 
 	raw_spin_unlock_irqrestore(&pmu_context->cpupm_lock, flags);
+
+	return 0;
+}
+
+/* Called from CPU hot plug callback with IRQs disabled */
+static int exynos_cpuhp_pmu_power_down(unsigned int cpu)
+{
+	raw_spin_lock(&pmu_context->cpupm_lock);
+	pmu_context->pmu_data->cpu_pmu_offline(pmu_context, cpu);
+	raw_spin_unlock(&pmu_context->cpupm_lock);
 
 	return 0;
 }
@@ -344,6 +366,10 @@ static void destroy_cpuhp_and_cpuidle(void)
 
 	if (pmu_context->cpuhp_prepare_state != CPUHP_INVALID)
 		cpuhp_remove_state(pmu_context->cpuhp_prepare_state);
+	if (pmu_context->cpuhp_power_up != CPUHP_INVALID)
+		cpuhp_remove_state(pmu_context->cpuhp_power_up);
+	if (pmu_context->cpuhp_power_down != CPUHP_INVALID)
+		cpuhp_remove_state(pmu_context->cpuhp_power_down);
 	if (pmu_context->cpuhp_online_state != CPUHP_INVALID)
 		cpuhp_remove_state(pmu_context->cpuhp_online_state);
 }
@@ -353,7 +379,7 @@ static int setup_cpuhp_and_cpuidle(struct device *dev)
 	struct device_node *intr_gen_node;
 	struct resource intrgen_res;
 	void __iomem *virt_addr;
-	int ret, cpu;
+	int ret;
 
 	if (!pmu_context->pmu_data->cpu_pmu_offline || !pmu_context->pmu_data->cpu_pmu_online) {
 		dev_err(dev,
@@ -409,13 +435,14 @@ static int setup_cpuhp_and_cpuidle(struct device *dev)
 						   GFP_KERNEL);
 	if (!pmu_context->in_cpuhp)
 		return -ENOMEM;
-
-	/* set PMU to power on */
-	for_each_online_cpu(cpu)
-		exynos_cpuhp_pmu_online(cpu);
+	bitmap_set(pmu_context->in_cpuhp, 0, num_possible_cpus());
+	debugfs_create_ulong("exynos_pmu_in_cpuhp", 0644, NULL,
+			     pmu_context->in_cpuhp);
 
 	/* register CPU hotplug callbacks */
 	pmu_context->cpuhp_prepare_state = CPUHP_INVALID;
+	pmu_context->cpuhp_power_up = CPUHP_INVALID;
+	pmu_context->cpuhp_power_down = CPUHP_INVALID;
 	pmu_context->cpuhp_online_state = CPUHP_INVALID;
 
 	ret = cpuhp_setup_state(CPUHP_BP_PREPARE_DYN, "soc/exynos-pmu:prepare",
@@ -425,8 +452,22 @@ static int setup_cpuhp_and_cpuidle(struct device *dev)
 
 	pmu_context->cpuhp_prepare_state = ret;
 
+	ret = cpuhp_setup_state(CPUHP_AP_EXYNOS_CPU_POWER_UP, "soc/exynos-pmu:power_up",
+				exynos_cpuhp_pmu_power_up, NULL);
+	if (ret < 0)
+		goto clean_cpuhp_states;
+
+	pmu_context->cpuhp_power_up = ret;
+
+	ret = cpuhp_setup_state(CPUHP_AP_EXYNOS_CPU_POWER_DOWN, "soc/exynos-pmu:power_down",
+				NULL, exynos_cpuhp_pmu_power_down);
+	if (ret < 0)
+		goto clean_cpuhp_states;
+
+	pmu_context->cpuhp_power_down = ret;
+
 	ret = cpuhp_setup_state(CPUHP_AP_ONLINE_DYN, "soc/exynos-pmu:online",
-				NULL, exynos_cpuhp_pmu_offline);
+				exynos_cpuhp_pmu_online, exynos_cpuhp_pmu_offline);
 	if (ret < 0)
 		goto clean_cpuhp_states;
 
@@ -447,6 +488,10 @@ static int setup_cpuhp_and_cpuidle(struct device *dev)
 clean_cpuhp_states:
 	if (pmu_context->cpuhp_prepare_state != CPUHP_INVALID)
 		cpuhp_remove_state(pmu_context->cpuhp_prepare_state);
+	if (pmu_context->cpuhp_power_up != CPUHP_INVALID)
+		cpuhp_remove_state(pmu_context->cpuhp_power_up);
+	if (pmu_context->cpuhp_power_down != CPUHP_INVALID)
+		cpuhp_remove_state(pmu_context->cpuhp_power_down);
 	if (pmu_context->cpuhp_online_state != CPUHP_INVALID)
 		cpuhp_remove_state(pmu_context->cpuhp_online_state);
 

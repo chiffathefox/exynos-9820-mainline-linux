@@ -43,6 +43,8 @@ struct exynos_pmu_context {
 	bool sys_insuspend;
 	bool sys_inreboot;
 	int cpuhp_prepare_state;
+	int cpuhp_power_up;
+	int cpuhp_power_down;
 	int cpuhp_online_state;
 };
 
@@ -105,6 +107,7 @@ extern const struct exynos_pmu_data exynos5420_pmu_data;
 #endif
 extern const struct exynos_pmu_data gs101_pmu_data;
 extern const struct exynos_pmu_data exynos850_pmu_data;
+extern const struct exynos_pmu_data exynos9820_pmu_data;
 
 extern void pmu_raw_writel(u32 val, u32 offset);
 extern u32 pmu_raw_readl(u32 offset);
