@@ -4,6 +4,7 @@
 // Copyright (c) 2017 Samsung Electronics Co., Ltd.
 // Copyright (c) 2017 Andi Shyti <andi@etezian.org>
 
+#include <linux/bitfield.h>
 #include <linux/unaligned.h>
 #include <linux/delay.h>
 #include <linux/i2c.h>
@@ -61,6 +62,10 @@
 #define S6SY761_EVENT_ID_COORDINATE	0x00
 #define S6SY761_EVENT_ID_STATUS		0x01
 
+/* status types */
+#define S6SY761_STATUS_ERR		0
+#define S6SY761_STATUS_INFO		1
+
 /* event register masks */
 #define S6SY761_MASK_TOUCH_STATE	0xc0 /* byte 0 */
 #define S6SY761_MASK_TID		0x3c
@@ -68,8 +73,9 @@
 #define S6SY761_MASK_X			0xf0 /* byte 3 */
 #define S6SY761_MASK_Y			0x0f
 #define S6SY761_MASK_Z			0x3f /* byte 6 */
-#define S6SY761_MASK_LEFT_EVENTS	0x3f /* byte 7 */
+#define S6SY761_MASK_LEFT_EVENTS	0x1f /* byte 7 */
 #define S6SY761_MASK_TOUCH_TYPE		0xc0 /* MSB in byte 6, LSB in byte 7 */
+#define S6SY761_MASK_STATUS_TYPE	GENMASK(5, 2)
 
 /* event touch state values */
 #define S6SY761_TS_NONE			0x00
@@ -194,6 +200,27 @@ static void s6sy761_handle_coordinates(struct s6sy761_data *sdata, u8 *event)
 	}
 }
 
+static void s6sy761_handle_status(struct s6sy761_data *sdata, u8 *event)
+{
+	u8 type = FIELD_GET(S6SY761_MASK_STATUS_TYPE, event[0]);
+	const char *prefix = NULL;
+
+	switch (type) {
+	case S6SY761_STATUS_ERR:
+		prefix = "S6SY761_STATUS_ERR: ";
+		break;
+
+	case S6SY761_STATUS_INFO:
+		prefix = "S6SY761_STATUS_INFO: ";
+		break;
+	}
+
+	if (prefix) {
+		print_hex_dump(KERN_WARNING, prefix, DUMP_PREFIX_OFFSET, 8, 1,
+			       event, S6SY761_EVENT_SIZE, true);
+	}
+}
+
 static void s6sy761_handle_events(struct s6sy761_data *sdata, u8 n_events)
 {
 	int i;
@@ -212,6 +239,7 @@ static void s6sy761_handle_events(struct s6sy761_data *sdata, u8 n_events)
 			break;
 
 		case S6SY761_EVENT_ID_STATUS:
+			s6sy761_handle_status(sdata, event);
 			break;
 
 		default:
@@ -239,8 +267,11 @@ static irqreturn_t s6sy761_irq_handler(int irq, void *dev)
 		return IRQ_HANDLED;
 
 	n_events = sdata->data[7] & S6SY761_MASK_LEFT_EVENTS;
-	if (unlikely(n_events > S6SY761_EVENT_COUNT - 1))
+	if (unlikely(n_events > S6SY761_EVENT_COUNT - 1)) {
+		dev_err(&sdata->client->dev,
+			"event buffer overflow n_events=%hhu\n", n_events);
 		return IRQ_HANDLED;
+	}
 
 	if (n_events) {
 		ret = s6sy761_read_events(sdata, n_events);
