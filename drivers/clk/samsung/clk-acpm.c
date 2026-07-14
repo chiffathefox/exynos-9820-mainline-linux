@@ -29,6 +29,7 @@ struct acpm_clk_variant {
 
 struct acpm_clk_driver_data {
 	const struct acpm_clk_variant *clks;
+	const struct clk_ops *clk_ops;
 	unsigned int nr_clks;
 	unsigned int mbox_chan_id;
 };
@@ -124,13 +125,9 @@ static const struct clk_ops acpm_clk_ops = {
 };
 
 static int acpm_clk_register(struct device *dev, struct acpm_clk *aclk,
-			     const char *name)
+			     struct clk_init_data *init)
 {
-	struct clk_init_data init = {};
-
-	init.name = name;
-	init.ops = &acpm_clk_ops;
-	aclk->hw.init = &init;
+	aclk->hw.init = init;
 
 	return devm_clk_hw_register(dev, &aclk->hw);
 }
@@ -142,6 +139,7 @@ static int acpm_clk_probe(struct platform_device *pdev)
 	struct acpm_handle *acpm_handle;
 	struct clk_hw_onecell_data *clk_data;
 	struct clk_hw **hws;
+	struct clk_init_data init = {};
 	struct device *dev = &pdev->dev;
 	struct acpm_clk *aclks;
 	unsigned int mbox_chan_id;
@@ -186,7 +184,9 @@ static int acpm_clk_probe(struct platform_device *pdev)
 
 		hws[i] = &aclk->hw;
 
-		err = acpm_clk_register(dev, aclk, drv_data->clks[i].name);
+		init.name = drv_data->clks[i].name;
+		init.ops = drv_data->clk_ops ?: &acpm_clk_ops;
+		err = acpm_clk_register(dev, aclk, &init);
 		if (err)
 			return dev_err_probe(dev, err,
 					     "Failed to register clock\n");
