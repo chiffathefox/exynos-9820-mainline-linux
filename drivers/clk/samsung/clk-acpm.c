@@ -20,6 +20,7 @@ struct acpm_clk {
 	u32 id;
 	struct clk_hw hw;
 	unsigned int mbox_chan_id;
+	unsigned long rate;
 	struct acpm_handle *handle;
 };
 
@@ -40,6 +41,35 @@ struct acpm_clk_driver_data {
 	{						\
 		.name		= cname,		\
 	}
+
+static unsigned long exynos9820_clk_recalc_rate(struct clk_hw *hw,
+						unsigned long parent_rate)
+{
+	struct acpm_clk *clk = to_acpm_clk(hw);
+
+	return clk->rate;
+}
+
+static int exynos9820_clk_determine_rate(struct clk_hw *hw,
+					 struct clk_rate_request *req)
+{
+	return 0;
+}
+
+static int exynos9820_clk_set_rate(struct clk_hw *hw, unsigned long rate,
+				   unsigned long parent_rate)
+{
+	int ret;
+	struct acpm_clk *clk = to_acpm_clk(hw);
+
+	ret = clk->handle->ops->dvfs.set_rate(clk->handle, clk->mbox_chan_id,
+					      clk->id, rate);
+	if (!ret) {
+		clk->rate = rate;
+	}
+
+	return ret;
+}
 
 static const struct acpm_clk_variant gs101_acpm_clks[] = {
 	ACPM_CLK("mif"),
@@ -82,8 +112,15 @@ static const struct acpm_clk_variant exynos9820_acpm_clks[] = {
 	ACPM_CLK("mfc"),
 };
 
+static const struct clk_ops exynos9820_clk_ops = {
+	.recalc_rate = exynos9820_clk_recalc_rate,
+	.determine_rate = exynos9820_clk_determine_rate,
+	.set_rate = exynos9820_clk_set_rate,
+};
+
 static const struct acpm_clk_driver_data acpm_clk_exynos9820 = {
 	.clks = exynos9820_acpm_clks,
+	.clk_ops = &exynos9820_clk_ops,
 	.nr_clks = ARRAY_SIZE(exynos9820_acpm_clks),
 	.mbox_chan_id = 0,
 };
