@@ -20,6 +20,7 @@
 #include <linux/regmap.h>
 #include <linux/thermal.h>
 #include <linux/units.h>
+#include <dt-bindings/thermal/samsung,exynos9820-tmu-top.h>
 
 #include "../thermal_hwmon.h"
 
@@ -79,6 +80,7 @@ struct acpm_tmu_priv {
 	unsigned int mbox_chan_id;
 	unsigned int num_sensors;
 	int irq;
+	bool polling_mode;
 	struct acpm_tmu_sensor sensors[] __counted_by(num_sensors);
 };
 
@@ -135,6 +137,20 @@ static const struct acpm_tmu_driver_data acpm_tmu_gs101 = {
 	.mbox_chan_id = 9,
 };
 
+static const struct acpm_tmu_sensor_group exynos9820_sensor_groups[] = {
+	ACPM_TMU_SENSOR_GROUP(0, EXYNOS9820_TMU_TOP_CPUCL2),
+	ACPM_TMU_SENSOR_GROUP(0, EXYNOS9820_TMU_TOP_CPUCL1),
+	ACPM_TMU_SENSOR_GROUP(0, EXYNOS9820_TMU_TOP_CPUCL0),
+	ACPM_TMU_SENSOR_GROUP(0, EXYNOS9820_TMU_TOP_G3D),
+	ACPM_TMU_SENSOR_GROUP(0, EXYNOS9820_TMU_TOP_ISP),
+};
+
+static const struct acpm_tmu_driver_data acpm_tmu_exynos9820 = {
+	.sensor_groups = exynos9820_sensor_groups,
+	.num_sensor_groups = ARRAY_SIZE(exynos9820_sensor_groups),
+	.mbox_chan_id = 9,
+};
+
 static int acpm_tmu_op_tz_control(struct acpm_tmu_sensor *sensor, bool on)
 {
 	struct acpm_tmu_priv *priv = sensor->priv;
@@ -142,10 +158,12 @@ static int acpm_tmu_op_tz_control(struct acpm_tmu_sensor *sensor, bool on)
 	const struct acpm_tmu_ops *ops = &handle->ops->tmu;
 	int ret;
 
-	ret = ops->tz_control(handle, priv->mbox_chan_id, sensor->group->id,
-			      on);
-	if (ret)
-		return ret;
+	if (!priv->polling_mode) {
+		ret = ops->tz_control(handle, priv->mbox_chan_id,
+				      sensor->group->id, on);
+		if (ret)
+			return ret;
+	}
 
 	sensor->enabled = on;
 
@@ -326,6 +344,10 @@ static const struct thermal_zone_device_ops acpm_tmu_sensor_ops = {
 	.set_trips = acpm_tmu_set_trips,
 };
 
+static const struct thermal_zone_device_ops acpm_tmu_sensor_polling_ops = {
+	.get_temp = acpm_tmu_get_temp,
+};
+
 static int acpm_tmu_has_pending_irq(struct acpm_tmu_sensor *sensor,
 				    bool *pending_irq)
 {
@@ -396,20 +418,31 @@ static irqreturn_t acpm_tmu_thread_fn(int irq, void *id)
 }
 
 static const struct of_device_id acpm_tmu_match[] = {
-	{ .compatible = "google,gs101-tmu-top" },
+	{
+		.compatible = "google,gs101-tmu-top",
+		.data = &acpm_tmu_gs101,
+	},
+	{
+		.compatible = "samsung,exynos9820-tmu-top",
+		.data = &acpm_tmu_exynos9820,
+	},
 	{ /* sentinel */ },
 };
 MODULE_DEVICE_TABLE(of, acpm_tmu_match);
 
 static int acpm_tmu_probe(struct platform_device *pdev)
 {
-	const struct acpm_tmu_driver_data *data = &acpm_tmu_gs101;
+	const struct acpm_tmu_driver_data *data;
 	struct acpm_handle *acpm_handle;
 	struct device *dev = &pdev->dev;
 	struct acpm_tmu_priv *priv;
 	struct regmap *regmap;
 	void __iomem *base;
 	int i, ret;
+
+	data = device_get_match_data(dev);
+	if (!data)
+		return -EINVAL;
 
 	acpm_handle = devm_acpm_get_by_phandle(dev);
 	if (IS_ERR(acpm_handle))
@@ -426,31 +459,39 @@ static int acpm_tmu_probe(struct platform_device *pdev)
 	priv->handle = acpm_handle;
 	priv->mbox_chan_id = data->mbox_chan_id;
 	priv->num_sensors = data->num_sensor_groups;
+	priv->polling_mode = !data->reg_fields;
 
 	platform_set_drvdata(pdev, priv);
 
-	base = devm_platform_ioremap_resource(pdev, 0);
-	if (IS_ERR(base))
-		return dev_err_probe(dev, PTR_ERR(base), "Failed to ioremap resource\n");
+	if (!priv->polling_mode) {
+		base = devm_platform_ioremap_resource(pdev, 0);
+		if (IS_ERR(base))
+			return dev_err_probe(dev, PTR_ERR(base),
+					     "Failed to ioremap resource\n");
 
-	regmap = devm_regmap_init_mmio(dev, base, &gs101_regmap_config);
-	if (IS_ERR(regmap))
-		return dev_err_probe(dev, PTR_ERR(regmap), "Failed to init regmap\n");
+		regmap = devm_regmap_init_mmio(dev, base, &gs101_regmap_config);
+		if (IS_ERR(regmap))
+			return dev_err_probe(dev, PTR_ERR(regmap),
+					     "Failed to init regmap\n");
 
-	ret = devm_regmap_field_bulk_alloc(dev, regmap, priv->regmap_fields,
-					   data->reg_fields, REG_INTPEND_COUNT);
-	if (ret)
-		return dev_err_probe(dev, ret,
-				     "Unable to map syscon registers\n");
+		ret = devm_regmap_field_bulk_alloc(dev, regmap,
+						   priv->regmap_fields,
+						   data->reg_fields,
+						   REG_INTPEND_COUNT);
+		if (ret)
+			return dev_err_probe(
+				dev, ret, "Unable to map syscon registers\n");
 
-	priv->clk = devm_clk_get(dev, NULL);
-	if (IS_ERR(priv->clk))
-		return dev_err_probe(dev, PTR_ERR(priv->clk),
-				     "Failed to get the clock\n");
+		priv->clk = devm_clk_get(dev, NULL);
+		if (IS_ERR(priv->clk))
+			return dev_err_probe(dev, PTR_ERR(priv->clk),
+					     "Failed to get the clock\n");
 
-	priv->irq = platform_get_irq(pdev, 0);
-	if (priv->irq < 0)
-		return dev_err_probe(dev, priv->irq, "Failed to get irq\n");
+		priv->irq = platform_get_irq(pdev, 0);
+		if (priv->irq < 0)
+			return dev_err_probe(dev, priv->irq,
+					     "Failed to get irq\n");
+	}
 
 	pm_runtime_set_autosuspend_delay(dev, 100);
 	pm_runtime_use_autosuspend(dev);
@@ -476,8 +517,10 @@ static int acpm_tmu_probe(struct platform_device *pdev)
 		sensor->group = &data->sensor_groups[i];
 		sensor->priv = priv;
 
-		sensor->tzd = devm_thermal_of_zone_register(dev, i, sensor,
-							    &acpm_tmu_sensor_ops);
+		sensor->tzd = devm_thermal_of_zone_register(
+			dev, i, sensor,
+			priv->polling_mode ? &acpm_tmu_sensor_polling_ops :
+					     &acpm_tmu_sensor_ops);
 		if (IS_ERR(sensor->tzd)) {
 			ret = PTR_ERR(sensor->tzd);
 			if (ret == -ENODEV) {
@@ -506,12 +549,16 @@ static int acpm_tmu_probe(struct platform_device *pdev)
 			dev_warn(dev, "Failed to add hwmon sysfs!\n");
 	}
 
-	ret = devm_request_threaded_irq(dev, priv->irq, NULL,
-					acpm_tmu_thread_fn, IRQF_ONESHOT,
-					dev_name(dev), priv);
-	if (ret) {
-		ret = dev_err_probe(dev, ret, "Failed to request irq\n");
-		goto err_rollback;
+	if (!priv->polling_mode) {
+		ret = devm_request_threaded_irq(dev, priv->irq, NULL,
+						acpm_tmu_thread_fn,
+						IRQF_ONESHOT, dev_name(dev),
+						priv);
+		if (ret) {
+			ret = dev_err_probe(dev, ret,
+					    "Failed to request irq\n");
+			goto err_rollback;
+		}
 	}
 
 	pm_runtime_put_autosuspend(dev);
@@ -530,8 +577,10 @@ static void acpm_tmu_remove(struct platform_device *pdev)
 {
 	struct acpm_tmu_priv *priv = platform_get_drvdata(pdev);
 
-	/* Stop IRQ first to prevent race with thread_fn */
-	disable_irq(priv->irq);
+	if (!priv->polling_mode) {
+		/* Stop IRQ first to prevent race with thread_fn */
+		disable_irq(priv->irq);
+	}
 
 	/*
 	 * Disable autosuspend to force the subsequent pm_runtime_put_sync()
