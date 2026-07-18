@@ -761,7 +761,7 @@ static const struct samsung_cmu_info peric0_cmu_info __initconst = {
 };
 
 /*
- * Register offsets for CMU_FSYS0 (0x10a00000)
+ * Register offsets for CMU_FSYS0A (0x10a00000)
  */
 #define PLL_CON0_MUX_CLKCMU_FSYS0A_BUS_USER						0x0100
 #define PLL_CON0_MUX_CLKCMU_FSYS0A_USB31DRD_USER					0x0120
@@ -830,7 +830,7 @@ static const struct samsung_gate_clock fsys0a_gate_clks[] __initconst = {
 	GATE(CLK_GOUT_FSYS0A_BUS_CLK, "gout_fsys0a_bus_clk",
 	     "mout_fsys0a_bus_user",
 	     CLK_CON_GAT_GOUT_BLK_FSYS0A_UID_RSTNSYNC_CLK_FSYS0A_BUS_IPCLKPORT_CLK,
-	     21, CLK_IS_CRITICAL, 0),
+	     21, 0, 0),
 	GATE(CLK_GOUT_FSYS0A_USB31DRD_ACLK_BUS, "gout_fsys0a_usb31drd_aclk_bus",
 	     "mout_fsys0a_bus_user",
 	     CLK_CON_GAT_GOUT_BLK_FSYS0A_UID_USB31DRD_IPCLKPORT_ACLK_BUS, 21,
