@@ -76,7 +76,8 @@ struct acpm_tmu_priv {
 	struct regmap_field *regmap_fields[REG_INTPEND_COUNT];
 	struct acpm_handle *handle;
 	struct device *dev;
-	struct clk *clk;
+	struct clk_bulk_data *clks;
+	int num_clks;
 	unsigned int mbox_chan_id;
 	unsigned int num_sensors;
 	int irq;
@@ -482,16 +483,16 @@ static int acpm_tmu_probe(struct platform_device *pdev)
 			return dev_err_probe(
 				dev, ret, "Unable to map syscon registers\n");
 
-		priv->clk = devm_clk_get(dev, NULL);
-		if (IS_ERR(priv->clk))
-			return dev_err_probe(dev, PTR_ERR(priv->clk),
-					     "Failed to get the clock\n");
-
 		priv->irq = platform_get_irq(pdev, 0);
 		if (priv->irq < 0)
 			return dev_err_probe(dev, priv->irq,
 					     "Failed to get irq\n");
 	}
+
+	ret = devm_clk_bulk_get_all(dev, &priv->clks);
+	if (ret < 0)
+		return dev_err_probe(dev, ret, "Failed to get clocks\n");
+	priv->num_clks = ret;
 
 	pm_runtime_set_autosuspend_delay(dev, 100);
 	pm_runtime_use_autosuspend(dev);
@@ -667,7 +668,7 @@ static int acpm_tmu_runtime_suspend(struct device *dev)
 {
 	struct acpm_tmu_priv *priv = dev_get_drvdata(dev);
 
-	clk_disable_unprepare(priv->clk);
+	clk_bulk_disable_unprepare(priv->num_clks, priv->clks);
 
 	return 0;
 }
@@ -676,7 +677,7 @@ static int acpm_tmu_runtime_resume(struct device *dev)
 {
 	struct acpm_tmu_priv *priv = dev_get_drvdata(dev);
 
-	return clk_prepare_enable(priv->clk);
+	return clk_bulk_prepare_enable(priv->num_clks, priv->clks);
 }
 
 static const struct dev_pm_ops acpm_tmu_pm_ops = {
