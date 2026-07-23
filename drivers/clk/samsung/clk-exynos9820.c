@@ -30,10 +30,15 @@
  * For gates remove _UID _BLK _IPCLKPORT and _RSTNSYNC
  */
 
+#define EXYNOS9820_GATE_DBG_OFFSET 0x4000
+#define EXYNOS9820_DRCG_EN_OFFSET  0x104
+#define EXYNOS9820_MEMCLK_OFFSET   0x108
+
 /*
  * Register offsets for CMU_PERIS (0x10020000)
  */
 #define PLL_CON0_MUX_CLKCMU_PERIS_BUS_USER					0x0100
+#define PERIS_CMU_PERIS_CONTROLLER_OPTION					0x0800
 #define CLK_CON_GAT_CLK_BLK_PERIS_UID_OTP_CON_BIRA_IPCLKPORT_I_OSCCLK		0x2000
 #define CLK_CON_GAT_CLK_BLK_PERIS_UID_OTP_CON_BISR_IPCLKPORT_I_OSCCLK		0x2004
 #define CLK_CON_GAT_CLK_BLK_PERIS_UID_OTP_CON_TOP_IPCLKPORT_I_OSCCLK		0x2008
@@ -60,6 +65,7 @@
 
 static const unsigned long peris_clk_regs[] __initconst = {
 	PLL_CON0_MUX_CLKCMU_PERIS_BUS_USER,
+	PERIS_CMU_PERIS_CONTROLLER_OPTION,
 	CLK_CON_GAT_CLK_BLK_PERIS_UID_OTP_CON_BIRA_IPCLKPORT_I_OSCCLK,
 	CLK_CON_GAT_CLK_BLK_PERIS_UID_OTP_CON_BISR_IPCLKPORT_I_OSCCLK,
 	CLK_CON_GAT_CLK_BLK_PERIS_UID_OTP_CON_TOP_IPCLKPORT_I_OSCCLK,
@@ -194,6 +200,11 @@ static const struct samsung_cmu_info peris_cmu_info __initconst = {
 	.clk_regs		= peris_clk_regs,
 	.nr_clk_regs		= ARRAY_SIZE(peris_clk_regs),
 	.clk_name		= "bus",
+	.auto_clock_gate	= true,
+	.gate_dbg_offset	= EXYNOS9820_GATE_DBG_OFFSET,
+	.option_offset		= PERIS_CMU_PERIS_CONTROLLER_OPTION,
+	.drcg_offset		= EXYNOS9820_DRCG_EN_OFFSET,
+	.memclk_offset		= EXYNOS9820_MEMCLK_OFFSET,
 };
 
 static void __init exynos9820_cmu_misc_init(struct device_node *np)
@@ -221,6 +232,7 @@ CLK_OF_DECLARE(exynos9820_cmu_misc, "samsung,exynos9820-cmu-peris",
 #define PLL_CON0_MUX_CLKCMU_PERIC0_USI14_USI_USER					0x0240
 #define PLL_CON0_MUX_CLKCMU_PERIC0_USI15_USI_USER					0x0260
 #define PLL_CON0_MUX_CLKCMU_PERIC0_USI_I2C_USER						0x0280
+#define PERIC0_CMU_PERIC0_CONTROLLER_OPTION						0x0800
 #define CLK_CON_DIV_DIV_CLK_PERIC0_UART_DBG						0x1800
 #define CLK_CON_DIV_DIV_CLK_PERIC0_USI00_USI						0x1804
 #define CLK_CON_DIV_DIV_CLK_PERIC0_USI01_USI						0x1808
@@ -313,6 +325,7 @@ static const unsigned long peric0_clk_regs[] __initconst = {
 	PLL_CON0_MUX_CLKCMU_PERIC0_USI14_USI_USER,
 	PLL_CON0_MUX_CLKCMU_PERIC0_USI15_USI_USER,
 	PLL_CON0_MUX_CLKCMU_PERIC0_USI_I2C_USER,
+	PERIC0_CMU_PERIC0_CONTROLLER_OPTION,
 	CLK_CON_DIV_DIV_CLK_PERIC0_UART_DBG,
 	CLK_CON_DIV_DIV_CLK_PERIC0_USI00_USI,
 	CLK_CON_DIV_DIV_CLK_PERIC0_USI01_USI,
@@ -756,6 +769,11 @@ static const struct samsung_cmu_info peric0_cmu_info __initconst = {
 	.clk_regs		= peric0_clk_regs,
 	.nr_clk_regs		= ARRAY_SIZE(peric0_clk_regs),
 	.clk_name		= "bus",
+	.auto_clock_gate	= true,
+	.gate_dbg_offset	= EXYNOS9820_GATE_DBG_OFFSET,
+	.option_offset		= PERIC0_CMU_PERIC0_CONTROLLER_OPTION,
+	.drcg_offset		= EXYNOS9820_DRCG_EN_OFFSET,
+	.memclk_offset		= EXYNOS9820_MEMCLK_OFFSET,
 };
 
 /*
@@ -764,6 +782,7 @@ static const struct samsung_cmu_info peric0_cmu_info __initconst = {
 #define PLL_CON0_MUX_CLKCMU_FSYS0A_BUS_USER						0x0100
 #define PLL_CON0_MUX_CLKCMU_FSYS0A_USB31DRD_USER					0x0120
 #define PLL_CON0_MUX_CLKCMU_FSYS0A_USBDP_DEBUG_USER					0x0140
+#define FSYS0A_CMU_FSYS0A_CONTROLLER_OPTION						0x0800
 #define CLK_CON_GAT_CLK_BLK_FSYS0A_UID_FSYS0A_CMU_FSYS0A_IPCLKPORT_PCLK			0x2000
 #define CLK_CON_GAT_GOUT_BLK_FSYS0A_UID_LHM_AXI_P_USB_IPCLKPORT_I_CLK			0x2008
 #define CLK_CON_GAT_GOUT_BLK_FSYS0A_UID_LHS_AXI_D_USB_IPCLKPORT_I_CLK			0x200c
@@ -781,6 +800,7 @@ static const unsigned long fsys0a_clk_regs[] __initconst = {
 	PLL_CON0_MUX_CLKCMU_FSYS0A_BUS_USER,
 	PLL_CON0_MUX_CLKCMU_FSYS0A_USB31DRD_USER,
 	PLL_CON0_MUX_CLKCMU_FSYS0A_USBDP_DEBUG_USER,
+	FSYS0A_CMU_FSYS0A_CONTROLLER_OPTION,
 	CLK_CON_GAT_CLK_BLK_FSYS0A_UID_FSYS0A_CMU_FSYS0A_IPCLKPORT_PCLK,
 	CLK_CON_GAT_GOUT_BLK_FSYS0A_UID_LHM_AXI_P_USB_IPCLKPORT_I_CLK,
 	CLK_CON_GAT_GOUT_BLK_FSYS0A_UID_LHS_AXI_D_USB_IPCLKPORT_I_CLK,
@@ -875,6 +895,9 @@ static const struct samsung_cmu_info fsys0a_cmu_info __initconst = {
 	.clk_regs		= fsys0a_clk_regs,
 	.nr_clk_regs		= ARRAY_SIZE(fsys0a_clk_regs),
 	.clk_name		= "bus",
+	.auto_clock_gate	= true,
+	.gate_dbg_offset	= EXYNOS9820_GATE_DBG_OFFSET,
+	.option_offset		= FSYS0A_CMU_FSYS0A_CONTROLLER_OPTION,
 };
 
 /*
@@ -887,6 +910,7 @@ static const struct samsung_cmu_info fsys0a_cmu_info __initconst = {
 #define PLL_CON0_MUX_CLKCMU_FSYS1_UFS_CARD_USER										0x0160
 #define PLL_CON0_MUX_CLKCMU_FSYS1_UFS_EMBD_USER										0x0180
 #define PLL_CON0_PLL_MMC												0x01a0
+#define FSYS1_CMU_FSYS1_CONTROLLER_OPTION										0x0800
 #define CLK_CON_MUX_MUX_CLK_FSYS1_BUS											0x1000
 #define CLK_CON_MUX_MUX_CLK_FSYS1_MMC_CARD										0x1004
 #define CLK_CON_DIV_DIV_CLK_FSYS1_BUS											0x1800
@@ -943,6 +967,7 @@ static const unsigned long fsys1_clk_regs[] __initconst = {
 	PLL_CON0_MUX_CLKCMU_FSYS1_UFS_CARD_USER,
 	PLL_CON0_MUX_CLKCMU_FSYS1_UFS_EMBD_USER,
 	PLL_CON0_PLL_MMC,
+	FSYS1_CMU_FSYS1_CONTROLLER_OPTION,
 	CLK_CON_MUX_MUX_CLK_FSYS1_BUS,
 	CLK_CON_MUX_MUX_CLK_FSYS1_MMC_CARD,
 	CLK_CON_DIV_DIV_CLK_FSYS1_BUS,
@@ -1212,6 +1237,11 @@ static const struct samsung_cmu_info fsys1_cmu_info __initconst = {
 	.clk_regs		= fsys1_clk_regs,
 	.nr_clk_regs		= ARRAY_SIZE(fsys1_clk_regs),
 	.clk_name		= "bus",
+	.auto_clock_gate	= true,
+	.gate_dbg_offset	= EXYNOS9820_GATE_DBG_OFFSET,
+	.option_offset		= FSYS1_CMU_FSYS1_CONTROLLER_OPTION,
+	.drcg_offset		= EXYNOS9820_DRCG_EN_OFFSET,
+	.memclk_offset		= EXYNOS9820_MEMCLK_OFFSET,
 };
 
 /*
@@ -1220,6 +1250,7 @@ static const struct samsung_cmu_info fsys1_cmu_info __initconst = {
 #define PLL_CON0_MUX_CLKCMU_APM_BUS_USER					0x0100
 #define PLL_CON0_MUX_CLKMUX_APM_RCO_USER					0x0120
 #define PLL_CON0_MUX_DLL_USER							0x0140
+#define APM_CMU_APM_CONTROLLER_OPTION						0x0800
 #define CLK_CON_MUX_MUX_CLKCMU_CMGP_BUS						0x1004
 #define CLK_CON_MUX_MUX_CLKCMU_VTS_BUS						0x1008
 #define CLK_CON_MUX_MUX_CLK_APM_BUS						0x100c
@@ -1268,6 +1299,7 @@ static const unsigned long apm_clk_regs[] __initconst = {
 	PLL_CON0_MUX_CLKCMU_APM_BUS_USER,
 	PLL_CON0_MUX_CLKMUX_APM_RCO_USER,
 	PLL_CON0_MUX_DLL_USER,
+	APM_CMU_APM_CONTROLLER_OPTION,
 	CLK_CON_MUX_MUX_CLKCMU_CMGP_BUS,
 	CLK_CON_MUX_MUX_CLKCMU_VTS_BUS,
 	CLK_CON_MUX_MUX_CLK_APM_BUS,
@@ -1498,6 +1530,11 @@ static const struct samsung_cmu_info apm_cmu_info __initconst = {
 	.clk_regs		= apm_clk_regs,
 	.nr_clk_regs		= ARRAY_SIZE(apm_clk_regs),
 	.clk_name		= "bus",
+	.auto_clock_gate	= true,
+	.gate_dbg_offset	= EXYNOS9820_GATE_DBG_OFFSET,
+	.option_offset		= APM_CMU_APM_CONTROLLER_OPTION,
+	.drcg_offset		= EXYNOS9820_DRCG_EN_OFFSET,
+	.memclk_offset		= EXYNOS9820_MEMCLK_OFFSET,
 };
 
 /*
@@ -1519,6 +1556,7 @@ static const struct samsung_cmu_info apm_cmu_info __initconst = {
 #define PLL_CON0_PLL_SHARED2						0x01a0
 #define PLL_CON0_PLL_SHARED3						0x01c0
 #define PLL_CON0_PLL_SHARED4						0x01e0
+#define CMU_CMU_CMU_CONTROLLER_OPTION					0x0800
 #define CLK_CON_MUX_CLKCMU_DPU_BUS					0x1000
 #define CLK_CON_MUX_MUX_CLKCMU_APM_BUS					0x1004
 #define CLK_CON_MUX_MUX_CLKCMU_AUD_CPU					0x1008
@@ -1704,6 +1742,7 @@ static const unsigned long top_clk_regs[] __initconst = {
 	PLL_CON0_PLL_SHARED2,
 	PLL_CON0_PLL_SHARED3,
 	PLL_CON0_PLL_SHARED4,
+	CMU_CMU_CMU_CONTROLLER_OPTION,
 	CLK_CON_MUX_CLKCMU_DPU_BUS,
 	CLK_CON_MUX_MUX_CLKCMU_APM_BUS,
 	CLK_CON_MUX_MUX_CLKCMU_AUD_CPU,
@@ -2445,6 +2484,9 @@ static const struct samsung_cmu_info top_cmu_info __initconst = {
 	.nr_clk_ids		= CLK_NR_TOP,
 	.clk_regs		= top_clk_regs,
 	.nr_clk_regs		= ARRAY_SIZE(top_clk_regs),
+	.auto_clock_gate	= true,
+	.gate_dbg_offset	= EXYNOS9820_GATE_DBG_OFFSET,
+	.option_offset		= CMU_CMU_CMU_CONTROLLER_OPTION,
 };
 
 static void __init exynos9820_cmu_top_init(struct device_node *np)
