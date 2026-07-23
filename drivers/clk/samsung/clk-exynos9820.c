@@ -107,6 +107,7 @@ static const struct samsung_gate_clock peris_gate_clks[] __initconst = {
 	     "gout_peris_otp_con_bisr_i_oscclk", "oscclk",
 	     CLK_CON_GAT_CLK_BLK_PERIS_UID_OTP_CON_BISR_IPCLKPORT_I_OSCCLK, 21,
 	     0, 0),
+	/* EL3 firmware rqeuires access to this register */
 	GATE(CLK_GOUT_PERIS_OTP_CON_TOP_I_OSCCLK,
 	     "gout_peris_otp_con_top_i_oscclk", "oscclk",
 	     CLK_CON_GAT_CLK_BLK_PERIS_UID_OTP_CON_TOP_IPCLKPORT_I_OSCCLK, 21,
@@ -153,6 +154,7 @@ static const struct samsung_gate_clock peris_gate_clks[] __initconst = {
 	     "mout_peris_bus_user",
 	     CLK_CON_GAT_GOUT_BLK_PERIS_UID_OTP_CON_BISR_IPCLKPORT_PCLK, 21,
 	     0, 0),
+	/* EL3 firmware rqeuires access to this register */
 	GATE(CLK_GOUT_PERIS_OTP_CON_TOP_PCLK, "gout_peris_otp_con_top_pclk",
 	     "mout_peris_bus_user",
 	     CLK_CON_GAT_GOUT_BLK_PERIS_UID_OTP_CON_TOP_IPCLKPORT_PCLK, 21,
