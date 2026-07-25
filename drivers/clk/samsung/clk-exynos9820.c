@@ -2922,6 +2922,25 @@ static void __init exynos9820_cmu_top_init(struct device_node *np)
 CLK_OF_DECLARE(exynos9820_cmu_top, "samsung,exynos9820-cmu-top",
 	       exynos9820_cmu_top_init);
 
+/*
+ * Register offsets for CMU_MIF (0x1bc00000/0x1bd00000/0x1be00000/0x1bf00000)
+ */
+#define MIF_CMU_MIF_CONTROLLER_OPTION		0x0800
+
+static const unsigned long mif_clk_regs[] __initconst = {
+	MIF_CMU_MIF_CONTROLLER_OPTION,
+};
+
+static const struct samsung_cmu_info mif_cmu_info __initconst = {
+	.clk_regs		= mif_clk_regs,
+	.nr_clk_regs		= ARRAY_SIZE(mif_clk_regs),
+	.clk_name		= "bus",
+	.auto_clock_gate	= true,
+	.gate_dbg_offset	= EXYNOS9820_GATE_DBG_OFFSET,
+	.option_offset		= MIF_CMU_MIF_CONTROLLER_OPTION,
+	.drcg_offset		= EXYNOS9820_DRCG_EN_OFFSET,
+};
+
 static int __init exynos9820_cmu_probe(struct platform_device *pdev)
 {
 	const struct samsung_cmu_info *info;
@@ -2952,6 +2971,9 @@ static const struct of_device_id exynos9820_cmu_of_match[] = {
 	}, {
 		.compatible = "samsung,exynos9820-cmu-busc",
 		.data = &busc_cmu_info,
+	}, {
+		.compatible = "samsung,exynos9820-cmu-mif",
+		.data = &mif_cmu_info,
 	}, {
 	},
 };
