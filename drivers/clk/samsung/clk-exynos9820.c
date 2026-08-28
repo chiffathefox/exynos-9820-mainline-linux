@@ -779,6 +779,26 @@ static const struct samsung_cmu_info peric0_cmu_info __initconst = {
 };
 
 /*
+ * Register offsets for CMU_PERIC1 (0x10800000)
+ */
+#define PERIC1_CMU_PERIC1_CONTROLLER_OPTION		0x0800
+
+static const unsigned long peric1_clk_regs[] __initconst = {
+	PERIC1_CMU_PERIC1_CONTROLLER_OPTION,
+};
+
+static const struct samsung_cmu_info peric1_cmu_info __initconst = {
+	.clk_regs		= peric1_clk_regs,
+	.nr_clk_regs		= ARRAY_SIZE(peric1_clk_regs),
+	.clk_name		= "bus",
+	.auto_clock_gate	= true,
+	.gate_dbg_offset	= EXYNOS9820_GATE_DBG_OFFSET,
+	.option_offset		= PERIC1_CMU_PERIC1_CONTROLLER_OPTION,
+	.drcg_offset		= EXYNOS9820_DRCG_EN_OFFSET,
+	.memclk_offset		= EXYNOS9820_MEMCLK_OFFSET,
+};
+
+/*
  * Register offsets for CMU_FSYS0A (0x10a00000)
  */
 #define PLL_CON0_MUX_CLKCMU_FSYS0A_BUS_USER						0x0100
@@ -2996,6 +3016,9 @@ static const struct of_device_id exynos9820_cmu_of_match[] = {
 	}, {
 		.compatible = "samsung,exynos9820-cmu-peric0",
 		.data = &peric0_cmu_info,
+	}, {
+		.compatible = "samsung,exynos9820-cmu-peric1",
+		.data = &peric1_cmu_info,
 	}, {
 		.compatible = "samsung,exynos9820-cmu-fsys0a",
 		.data = &fsys0a_cmu_info,
