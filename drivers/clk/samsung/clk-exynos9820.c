@@ -923,6 +923,25 @@ static const struct samsung_cmu_info fsys0a_cmu_info __initconst = {
 };
 
 /*
+ * Register offsets for CMU_FSYS0 (0x13000000)
+ */
+#define FSYS0_CMU_FSYS0_CONTROLLER_OPTION		0x0800
+
+static const unsigned long fsys0_clk_regs[] __initconst = {
+	FSYS0_CMU_FSYS0_CONTROLLER_OPTION,
+};
+
+static const struct samsung_cmu_info fsys0_cmu_info __initconst = {
+	.clk_regs		= fsys0_clk_regs,
+	.nr_clk_regs		= ARRAY_SIZE(fsys0_clk_regs),
+	.clk_name		= "bus",
+	.auto_clock_gate	= true,
+	.gate_dbg_offset	= EXYNOS9820_GATE_DBG_OFFSET,
+	.option_offset		= FSYS0_CMU_FSYS0_CONTROLLER_OPTION,
+	.drcg_offset		= EXYNOS9820_DRCG_EN_OFFSET,
+};
+
+/*
  * Register offsets for CMU_FSYS1 (0x13c00000)
  */
 #define PLL_LOCKTIME_PLL_MMC												0x0000
@@ -3011,6 +3030,9 @@ static int __init exynos9820_cmu_probe(struct platform_device *pdev)
 
 static const struct of_device_id exynos9820_cmu_of_match[] = {
 	{
+		.compatible = "samsung,exynos9820-cmu-fsys0",
+		.data = &fsys0_cmu_info,
+	}, {
 		.compatible = "samsung,exynos9820-cmu-fsys1",
 		.data = &fsys1_cmu_info,
 	}, {
