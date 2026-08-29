@@ -1588,6 +1588,26 @@ static const struct samsung_cmu_info g3d_cmu_info __initconst = {
 };
 
 /*
+ * Register offsets for CMU_DPU (0x19000000)
+ */
+#define DPU_CMU_DPU_CONTROLLER_OPTION		0x0800
+
+static const unsigned long dpu_clk_regs[] __initconst = {
+	DPU_CMU_DPU_CONTROLLER_OPTION,
+};
+
+static const struct samsung_cmu_info dpu_cmu_info __initconst = {
+	.clk_regs		= dpu_clk_regs,
+	.nr_clk_regs		= ARRAY_SIZE(dpu_clk_regs),
+	.clk_name		= "bus",
+	.auto_clock_gate	= true,
+	.gate_dbg_offset	= EXYNOS9820_GATE_DBG_OFFSET,
+	.option_offset		= DPU_CMU_DPU_CONTROLLER_OPTION,
+	.drcg_offset		= EXYNOS9820_DRCG_EN_OFFSET,
+	.memclk_offset		= EXYNOS9820_MEMCLK_OFFSET,
+};
+
+/*
  * Register offsets for CMU_CORE (0x1a030000)
  */
 #define CORE_CMU_CORE_CONTROLLER_OPTION		0x0800
@@ -3068,6 +3088,9 @@ static const struct of_device_id exynos9820_cmu_of_match[] = {
 	}, {
 		.compatible = "samsung,exynos9820-cmu-g3d",
 		.data = &g3d_cmu_info,
+	}, {
+		.compatible = "samsung,exynos9820-cmu-dpu",
+		.data = &dpu_cmu_info,
 	}, {
 		.compatible = "samsung,exynos9820-cmu-core",
 		.data = &core_cmu_info,
